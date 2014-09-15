@@ -27,7 +27,7 @@ namespace StreamKinect2
         private DNSSDService m_zcService, m_zcRegistrar;
 
         // Connection information
-        private string m_host;          // Local hostname to advertise endpoints via
+        private string m_hostname;          // Local hostname to advertise endpoints via
         private string m_name;          // Name of this server
 
         // state machine
@@ -119,7 +119,7 @@ namespace StreamKinect2
                 version = 1,
                 name = m_name,
                 endpoints = new Dictionary<string, string> {
-                    { "control", "tcp://" + m_host + ":" + m_controlSocketPort },
+                    { "control", "tcp://" + m_hostname + ":" + m_controlSocketPort },
                 },
                 devices = new DeviceRecord[] {
 
@@ -156,7 +156,7 @@ namespace StreamKinect2
             if (port != m_controlSocketPort) { return; }
 
             // Record hostname
-            m_host = hostname;
+            m_hostname = hostname;
 
             // Transition to RUNNING state
             m_state = State.RUNNING;
