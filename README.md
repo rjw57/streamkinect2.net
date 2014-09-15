@@ -15,6 +15,10 @@ for Windows](https://developer.apple.com/bonjour/index.html) and [Kinect for
 Windows SDK](http://www.microsoft.com/en-us/kinectforwindows/) version 2
 installed.
 
+Dependencies which may be re-distributed are located in the
+[dependencies](dependencies/) folder. Please read the
+[README](dependencies/README.md) for licensing information.
+
 Additional dependencies are managed via [NuGet](https://www.nuget.org/).
 
 ## Licence
