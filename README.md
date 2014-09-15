@@ -7,6 +7,14 @@ This is a minimal implementation of the
 .NET. It's intended to make installation of a streamkinect2 server on Windows
 easier by not requiring a working Python environment.
 
+## Minimum requirements
+
+The minimum requirements for this software are those of the Kinect for Windows
+SDK 2.0. In practice this means:
+
+* Windows 8.1
+* USB 3.0
+
 ## Building
 
 You will need Visual Studio 2013 to build this software. The free (as in beer)
