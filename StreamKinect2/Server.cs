@@ -1,4 +1,5 @@
 ﻿using Bonjour;
+using Microsoft.Kinect;
 using NetMQ;
 using System;
 using System.Collections.Generic;
@@ -41,6 +42,9 @@ namespace StreamKinect2
 
         public Server(Poller poller, NetMQContext netMQContext = null)
         {
+            KinectSensor[] sensors = KinectSensor.KinectSensors.Cast<KinectSensor>().ToArray();
+            System.Diagnostics.Debug.WriteLine("Number of sensors connected: " + sensors.Length);
+
             // Record the netMQ context we use to create the server.
             m_netMQContext = (netMQContext != null) ? netMQContext : NetMQContext.Create();
 
@@ -114,6 +118,16 @@ namespace StreamKinect2
 
         protected MePayload GetCurrentMe()
         {
+            var devices = new List<DeviceRecord>();
+            foreach(KinectSensor sensor in KinectSensor.KinectSensors)
+            {
+                devices.Add(new DeviceRecord
+                {
+                    id = sensor.UniqueKinectId,
+                    endpoints = { },
+                });
+            }
+
             return new MePayload
             {
                 version = 1,
@@ -121,9 +135,7 @@ namespace StreamKinect2
                 endpoints = new Dictionary<string, string> {
                     { "control", "tcp://" + m_hostname + ":" + m_controlSocketPort },
                 },
-                devices = new DeviceRecord[] {
-
-                },
+                devices = devices,
             };
         }
 
