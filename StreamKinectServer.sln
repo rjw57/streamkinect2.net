@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Windows Desktop
 VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinectServer", "StreamKinectServer\StreamKinectServer.csproj", "{9EE2EC81-1C7E-4DC8-B155-8844ABB51396}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleServer", "StreamKinectServer\ExampleServer.csproj", "{9EE2EC81-1C7E-4DC8-B155-8844ABB51396}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinect2", "StreamKinect2\StreamKinect2.csproj", "{0B84DD59-ED7B-4674-8939-4BB5B0FC8C4F}"
 EndProject
