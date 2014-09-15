@@ -1,5 +1,7 @@
 # Kinect 2 streaming server for .NET
 
+[![Build status](https://ci.appveyor.com/api/projects/status/t4m3d2ollhbjqklc/branch/master)](https://ci.appveyor.com/project/rjw57/streamkinect2-net/branch/master)
+
 This is a minimal implementation of the
 [streamkinect2](https://github.com/rjw57/streamkinect2) server protocol for
 .NET. It's intended to make installation of a streamkinect2 server on Windows
