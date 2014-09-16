@@ -136,6 +136,17 @@ namespace StreamKinect2
             }
             Debug.WriteLine("Stopping server");
 
+            // Remove all endpoints for all devices
+            foreach(var device in m_devices)
+            {
+                var endpoints = device.Value;
+                foreach(var endpoint in endpoints)
+                {
+                    endpoint.Value.Socket.Close();
+                }
+                endpoints.Clear();
+            }
+
             // Stop being interested in Zeroconf events
             m_zcBrowser.ServiceRegistered -= ZeroconfBrowser_ServiceRegistered;
             m_zcBrowser.ServiceResolved -= ZeroconfBrowser_ServiceResolved;
