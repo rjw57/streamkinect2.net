@@ -1,5 +1,4 @@
 ﻿using Bonjour;
-//using Microsoft.Kinect;
 using NetMQ;
 using System;
 using System.Collections.Generic;
