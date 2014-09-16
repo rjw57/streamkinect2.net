@@ -26,6 +26,12 @@ namespace StreamKinect2
             RUNNING,                    // Server is running
         }
 
+        private class DeviceEndpoint
+        {
+            public string      Address;
+            public NetMQSocket Socket;
+        }
+
         // Zeroconf browser we're using to register ourselves
         IZeroconfServiceBrowser m_zcBrowser;
 
@@ -46,7 +52,7 @@ namespace StreamKinect2
         private int m_controlSocketPort;
 
         // Set of Kinect devices which we know about
-        private ISet<IDevice> m_devices;
+        private IDictionary<IDevice, IDictionary<string, DeviceEndpoint>> m_devices;
 
         public Server() : this(new Poller(), NetMQContext.Create())
         {
@@ -65,7 +71,7 @@ namespace StreamKinect2
             m_poller = poller;
 
             // Initialise our set of devices
-            m_devices = new HashSet<IDevice>();
+            m_devices = new Dictionary<IDevice, IDictionary<string, DeviceEndpoint>>();
         }
 
         public void Dispose()
@@ -145,7 +151,7 @@ namespace StreamKinect2
 
         public void AddDevice(IDevice device)
         {
-            m_devices.Add(device);
+            m_devices.Add(device, new Dictionary<string, DeviceEndpoint>());
         }
 
         public void RemoveDevice(IDevice device)
@@ -158,10 +164,30 @@ namespace StreamKinect2
             var devices = new List<DeviceRecord>();
             foreach(var device in m_devices)
             {
+                var endpoints = device.Value;
+
+                // create endpoints for device if this is the first time we've been asked about it
+                if (endpoints.Count == 0)
+                {
+                    var depthSocket = m_netMQContext.CreatePublisherSocket();
+                    var depthSocketPort = depthSocket.BindRandomPort("tcp://0.0.0.0");
+                    endpoints[EndpointTypes.DEPTH] = new DeviceEndpoint
+                    {
+                        Address = "tcp://" + m_hostname + ":" + depthSocketPort,
+                        Socket = depthSocket,
+                    };
+                }
+
+                var endpointPayload = new Dictionary<string, string>(); 
+                foreach(var endpoint in endpoints)
+                {
+                    endpointPayload[endpoint.Key] = endpoint.Value.Address;
+                }
+                
                 devices.Add(new DeviceRecord
                 {
-                    id = device.UniqueId,
-                    endpoints = { },
+                    id = device.Key.UniqueId,
+                    endpoints = endpointPayload,
                 });
             }
 
@@ -170,7 +196,7 @@ namespace StreamKinect2
                 version = 1,
                 name = m_name,
                 endpoints = new Dictionary<string, string> {
-                    { "control", "tcp://" + m_hostname + ":" + m_controlSocketPort },
+                    { EndpointTypes.CONTROL, "tcp://" + m_hostname + ":" + m_controlSocketPort },
                 },
                 devices = devices,
             };

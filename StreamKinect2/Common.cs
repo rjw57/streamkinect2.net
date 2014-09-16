@@ -26,11 +26,17 @@ namespace StreamKinect2
         public IDictionary<string, string> endpoints;
     }
 
-    public class MePayload : Payload
+    public sealed class MePayload : Payload
     {
         public int version;
         public string name;
         public IDictionary<string, string> endpoints;
         public IList<DeviceRecord> devices;
+    }
+
+    public sealed class EndpointTypes
+    {
+        public static string CONTROL = "control";
+        public static string DEPTH = "depth";
     }
 }
