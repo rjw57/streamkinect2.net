@@ -9,7 +9,7 @@ using StreamKinect2Tests.Mocks;
 namespace StreamKinect2Tests
 {
     [TestClass]
-    public class ServerTests
+    public class StoppedServerTests
     {
         // Re-initialised for each test
         private Server m_server;
@@ -49,11 +49,7 @@ namespace StreamKinect2Tests
         {
             Assert.IsFalse(m_server.IsRunning);
             m_server.Start(m_mockZcBrowser);
-            while (!m_server.IsRunning)
-            {
-                Debug.WriteLine("is server running: " + m_server.IsRunning);
-                Thread.Sleep(100);
-            }
+            while (!m_server.IsRunning) { Thread.Sleep(100); }
             m_server.Stop();
         }
     }
