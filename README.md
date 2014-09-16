@@ -26,7 +26,7 @@ installed.
 Dependencies which may be re-distributed are located in the
 [streamkinect2.net-depends](https://github.com/rjw57/streamkinect2.net-depends)
 repository. Please read the
-[README](https://github.com/rjw57/streamkinect2.net-depends/README.md)
+[README](https://github.com/rjw57/streamkinect2.net-depends/blob/master/README.md)
 in that repository for licensing information.
 
 Additional dependencies are managed via [NuGet](https://www.nuget.org/).
