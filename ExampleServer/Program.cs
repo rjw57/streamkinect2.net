@@ -1,5 +1,4 @@
 ﻿using StreamKinect2;
-using System.Threading.Tasks;
 
 namespace ExampleServer
 {
