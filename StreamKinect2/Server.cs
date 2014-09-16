@@ -46,7 +46,7 @@ namespace StreamKinect2
         private int m_controlSocketPort;
 
         // Set of Kinect devices which we know about
-        private ISet<IKinectDevice> m_devices;
+        private ISet<IDevice> m_devices;
 
         public Server() : this(new Poller(), NetMQContext.Create())
         {
@@ -65,7 +65,7 @@ namespace StreamKinect2
             m_poller = poller;
 
             // Initialise our set of devices
-            m_devices = new HashSet<IKinectDevice>();
+            m_devices = new HashSet<IDevice>();
         }
 
         public void Dispose()
@@ -143,12 +143,12 @@ namespace StreamKinect2
 
         public bool IsRunning { get { return m_state == State.RUNNING; } }
 
-        public void AddDevice(IKinectDevice device)
+        public void AddDevice(IDevice device)
         {
             m_devices.Add(device);
         }
 
-        public void RemoveDevice(IKinectDevice device)
+        public void RemoveDevice(IDevice device)
         {
             m_devices.Remove(device);
         }

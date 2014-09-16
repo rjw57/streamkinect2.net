@@ -10,6 +10,7 @@ namespace ExampleServer
             using (Server server = new Server())
             {
                 server.Start();
+                server.AddDevice(new SimulatedKinectDevice());
                 System.Console.WriteLine("Press Enter to stop server");
                 System.Console.ReadLine();
             }
