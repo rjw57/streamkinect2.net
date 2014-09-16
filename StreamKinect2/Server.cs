@@ -3,11 +3,15 @@ using Microsoft.Kinect;
 using NetMQ;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web.Script.Serialization;
 
 namespace StreamKinect2
 {
+    /// <summary>
+    /// Exception raised by Server on an error.
+    /// </summary>
     public class ServerException : Exception
     {
         public ServerException(string message) : base(message) { }
@@ -43,7 +47,7 @@ namespace StreamKinect2
         public Server(Poller poller, NetMQContext netMQContext = null)
         {
             KinectSensor[] sensors = KinectSensor.KinectSensors.Cast<KinectSensor>().ToArray();
-            System.Diagnostics.Debug.WriteLine("Number of sensors connected: " + sensors.Length);
+            Debug.WriteLine("Number of sensors connected: " + sensors.Length);
 
             // Record the netMQ context we use to create the server.
             m_netMQContext = (netMQContext != null) ? netMQContext : NetMQContext.Create();
@@ -51,20 +55,13 @@ namespace StreamKinect2
             // Record the netMQ poller
             m_poller = poller;
 
-            // Initialise ZeroConf
-            try
-            {
-                m_zcService = new DNSSDService();
-                m_zcEventManager = new DNSSDEventManager();
-            }
-            catch
-            {
-                throw new ServerException("ZeroConf is not available");
-            }
-
             // Register interest in service registraion
+            m_zcEventManager = new DNSSDEventManager();
             m_zcEventManager.ServiceRegistered += EventManager_ServiceRegistered;
             m_zcEventManager.ServiceResolved += EventManager_ServiceResolved;
+
+            // Create ZeroConf service
+            m_zcService = new DNSSDService();
         }
 
         public void Dispose()
@@ -83,18 +80,18 @@ namespace StreamKinect2
             {
                 throw new ServerException("Server already running");
             }
-            System.Diagnostics.Debug.WriteLine("Starting server");
+            Debug.WriteLine("Starting server");
 
             // Create a control endpoint socket and bind it to a random port
             m_controlSocket = m_netMQContext.CreateResponseSocket();
             m_controlSocketPort = m_controlSocket.BindRandomPort("tcp://0.0.0.0");
             m_controlSocket.ReceiveReady += ControlSocket_ReceiveReady;
-            System.Diagnostics.Debug.WriteLine("Server control socket bound to port: " + m_controlSocketPort);
+            Debug.WriteLine("Server control socket bound to port: " + m_controlSocketPort);
 
             // Register the server with ZeroConf
-            System.Diagnostics.Debug.WriteLine("Registering with ZeroConf");
-            m_zcRegistrar = m_zcService.Register(0, 0,
-                System.Environment.UserName, "_kinect2._tcp", null, null, (ushort)m_controlSocketPort, null, m_zcEventManager);
+            Debug.WriteLine("Registering with ZeroConf");
+            m_zcRegistrar = m_zcService.Register(0, 0, System.Environment.UserName, "_kinect2._tcp",
+                null, null, (ushort)m_controlSocketPort, null, m_zcEventManager);
 
             // Wait for registration
             m_state = State.WAITING_FOR_REGISTRATION;
@@ -107,11 +104,16 @@ namespace StreamKinect2
             {
                 throw new ServerException("Server not running");
             }
-            System.Diagnostics.Debug.WriteLine("Stopping server");
+            Debug.WriteLine("Stopping server");
 
             m_state = State.RUNNING;
             m_poller.RemoveSocket(m_controlSocket);
+
+            // Tear-down Zeroconf stuff
+            m_zcRegistrar = null;
         }
+
+        public bool IsRunning { get { return m_state == State.RUNNING; } }
 
         protected MePayload GetCurrentMe()
         {
@@ -159,10 +161,12 @@ namespace StreamKinect2
 
         void EventManager_ServiceResolved(DNSSDService service, DNSSDFlags flags, uint ifIndex, string fullname, string hostname, ushort port, TXTRecord record)
         {
+            // Only pay attention if the resolved service corresponds to our
+            // control socket and we're waiting for it
             if (m_state != State.WAITING_FOR_RESOLVE) { return; }
-
-            // Only pay attention if the resolved service corresponds to our control socket
             if (port != m_controlSocketPort) { return; }
+
+            Debug.WriteLine("Resolved our service, fullname: " + fullname + ", hostname: " + hostname + ", port: " + port);
 
             // Record hostname
             m_hostname = hostname;
@@ -176,7 +180,10 @@ namespace StreamKinect2
 
         void EventManager_ServiceRegistered(DNSSDService service, DNSSDFlags flags, string name, string regtype, string domain)
         {
+            // Only pay attention if we're waiting for it
             if (m_state != State.WAITING_FOR_REGISTRATION) { return; }
+
+            Debug.WriteLine("Registered our service, name: " + name + ", regtype: " + regtype + ", domain: " + domain);
 
             // Record our name
             m_name = name;
