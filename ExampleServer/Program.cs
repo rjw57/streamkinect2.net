@@ -1,5 +1,4 @@
-﻿using NetMQ;
-using StreamKinect2;
+﻿using StreamKinect2;
 using System.Threading.Tasks;
 
 namespace ExampleServer
@@ -8,16 +7,11 @@ namespace ExampleServer
     {
         static void Main(string[] args)
         {
-            using (Poller poller = new Poller())
+            using (Server server = new Server())
             {
-                using (Server server = new Server(poller))
-                {
-                    Task pollerTask = Task.Factory.StartNew(poller.Start);
-                    server.Start();
-                    System.Console.WriteLine("Press Enter to stop server");
-                    System.Console.ReadLine();
-                    poller.Stop();
-                }
+                server.Start();
+                System.Console.WriteLine("Press Enter to stop server");
+                System.Console.ReadLine();
             }
         }
     }

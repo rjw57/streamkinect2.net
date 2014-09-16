@@ -1,10 +1,10 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetMQ;
 using StreamKinect2;
 using System.Threading;
+using System.Collections.Generic;
+using System;
+using StreamKinect2Tests.Mocks;
 
 namespace StreamKinect2Tests
 {
@@ -12,45 +12,29 @@ namespace StreamKinect2Tests
     public class ServerTests
     {
         // Re-initialised for each test
-        private Poller m_poller = null;
-        private Task m_pollerTask = null;
-        private Server m_server = null;
+        private Server m_server;
+
+        // Should be passed to Server.Start()
+        private IZeroconfServiceBrowser m_mockZcBrowser;
 
         [TestInitialize]
         public void Initialize()
         {
-            // Initialise poller and start poll task
-            m_poller = new Poller();
-            m_pollerTask = Task.Factory.StartNew(m_poller.Start);
-
-            // Initialise server
-            m_server = new Server(m_poller);
+            m_server = new Server();
+            m_mockZcBrowser = new MockZeroconfServiceBrowser();
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            // Stop poller
-            if (m_poller.IsStarted)
-            {
-                m_poller.Stop();
-                m_pollerTask.Wait(200);
-            }
-            m_pollerTask = null;
-
-            // Dispose poller
-            m_poller.Dispose();
-            m_poller = null;
-
-            // Dipose server
+            // Dispose server
             m_server.Dispose();
             m_server = null;
         }
 
         [TestMethod]
-        public void PollerAndServerInitialized()
+        public void ServerInitialized()
         {
-            Assert.IsNotNull(m_poller);
             Assert.IsNotNull(m_server);
         }
 
@@ -60,12 +44,11 @@ namespace StreamKinect2Tests
             Assert.IsFalse(m_server.IsRunning);
         }
 
-        /*
         [TestMethod, Timeout(3000)]
         public void ServerDoesStartEventually()
         {
             Assert.IsFalse(m_server.IsRunning);
-            m_server.Start();
+            m_server.Start(m_mockZcBrowser);
             while (!m_server.IsRunning)
             {
                 Debug.WriteLine("is server running: " + m_server.IsRunning);
@@ -73,6 +56,5 @@ namespace StreamKinect2Tests
             }
             m_server.Stop();
         }
-         */
     }
 }

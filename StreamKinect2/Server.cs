@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
 namespace StreamKinect2
@@ -27,53 +28,67 @@ namespace StreamKinect2
             RUNNING,                    // Server is running
         }
 
-        // Zeroconf magic
-        private DNSSDEventManager m_zcEventManager;
-        private DNSSDService m_zcService, m_zcRegistrar;
+        // Zeroconf browser we're using to register ourselves
+        IZeroconfServiceBrowser m_zcBrowser;
 
         // Connection information
-        private string m_hostname;          // Local hostname to advertise endpoints via
+        private string m_hostname;      // Local hostname to advertise endpoints via
         private string m_name;          // Name of this server
 
-        // state machine
+        // State machine
         State m_state = State.STOPPED;
 
         // ZeroMQ related objects
         private NetMQContext m_netMQContext;
         private Poller m_poller;
+        private Task m_pollerTask; // non-null iff we are managing the poller ourselves
+
+        // Control socket
         private NetMQSocket m_controlSocket;
         private int m_controlSocketPort;
 
-        public Server(Poller poller, NetMQContext netMQContext = null)
+        public Server() : this(new Poller(), NetMQContext.Create())
+        {
+            // Start poller task
+            m_pollerTask = Task.Factory.StartNew(m_poller.Start);
+        }
+
+        public Server(Poller poller) : this(poller, NetMQContext.Create()) { }
+
+        public Server(Poller poller, NetMQContext netMQContext)
         {
             KinectSensor[] sensors = KinectSensor.KinectSensors.Cast<KinectSensor>().ToArray();
             Debug.WriteLine("Number of sensors connected: " + sensors.Length);
 
             // Record the netMQ context we use to create the server.
-            m_netMQContext = (netMQContext != null) ? netMQContext : NetMQContext.Create();
+            m_netMQContext = netMQContext;
 
             // Record the netMQ poller
             m_poller = poller;
-
-            // Register interest in service registraion
-            m_zcEventManager = new DNSSDEventManager();
-            m_zcEventManager.ServiceRegistered += EventManager_ServiceRegistered;
-            m_zcEventManager.ServiceResolved += EventManager_ServiceResolved;
-
-            // Create ZeroConf service
-            m_zcService = new DNSSDService();
         }
 
         public void Dispose()
         {
             // Stop the server if it is running.
-            if (m_state == State.RUNNING)
+            if (m_state != State.STOPPED)
             {
                 Stop();
+            }
+
+            // Ensure that the poller task is stopped if one was started
+            if (m_poller.IsStarted && (m_pollerTask != null) && !m_pollerTask.IsCompleted)
+            {
+                m_poller.Stop();
+                m_pollerTask.Wait(100);
             }
         }
 
         public void Start()
+        {
+            Start(new BonjourServiceBrowser());
+        }
+
+        public void Start(IZeroconfServiceBrowser zcBrowser)
         {
             // Ensure we're not running.
             if (m_state != State.STOPPED)
@@ -88,30 +103,39 @@ namespace StreamKinect2
             m_controlSocket.ReceiveReady += ControlSocket_ReceiveReady;
             Debug.WriteLine("Server control socket bound to port: " + m_controlSocketPort);
 
-            // Register the server with ZeroConf
-            Debug.WriteLine("Registering with ZeroConf");
-            m_zcRegistrar = m_zcService.Register(0, 0, System.Environment.UserName, "_kinect2._tcp",
-                null, null, (ushort)m_controlSocketPort, null, m_zcEventManager);
+            // Wire up our event handlers to the browser
+            m_zcBrowser = zcBrowser;
+            m_zcBrowser.ServiceRegistered += ZeroconfBrowser_ServiceRegistered;
+            m_zcBrowser.ServiceResolved += ZeroconfBrowser_ServiceResolved;
 
             // Wait for registration
             m_state = State.WAITING_FOR_REGISTRATION;
+
+            // Register the server with ZeroConf
+            Debug.WriteLine("Registering with ZeroConf");
+            zcBrowser.Register("Kinect stream on " + System.Environment.MachineName, "_kinect2._tcp", (ushort) m_controlSocketPort);
         }
 
         public void Stop()
         {
-            // Ensure we're running.
-            if (m_state != State.RUNNING)
+            // Ensure we're not stopped. We can stop the server even when
+            // waiting for ZeroConf registration.
+            if (m_state == State.STOPPED)
             {
                 throw new ServerException("Server not running");
             }
             Debug.WriteLine("Stopping server");
 
-            m_state = State.RUNNING;
-            m_poller.RemoveSocket(m_controlSocket);
+            // Stop being interested in Zeroconf events
+            m_zcBrowser.ServiceRegistered -= ZeroconfBrowser_ServiceRegistered;
+            m_zcBrowser.ServiceResolved -= ZeroconfBrowser_ServiceResolved;
+            m_zcBrowser = null;
 
-            // Tear-down Zeroconf stuff
-            m_zcRegistrar = null;
+            m_poller.RemoveSocket(m_controlSocket);
+            m_state = State.STOPPED;
         }
+
+        public Poller Poller { get { return m_poller; } }
 
         public bool IsRunning { get { return m_state == State.RUNNING; } }
 
@@ -159,17 +183,17 @@ namespace StreamKinect2
 
         // EVENT HANDLERS
 
-        void EventManager_ServiceResolved(DNSSDService service, DNSSDFlags flags, uint ifIndex, string fullname, string hostname, ushort port, TXTRecord record)
+        private void ZeroconfBrowser_ServiceResolved(IZeroconfServiceBrowser browser, ServiceResolvedArgs args)
         {
             // Only pay attention if the resolved service corresponds to our
             // control socket and we're waiting for it
             if (m_state != State.WAITING_FOR_RESOLVE) { return; }
-            if (port != m_controlSocketPort) { return; }
+            if (args.Port != m_controlSocketPort) { return; }
 
-            Debug.WriteLine("Resolved our service, fullname: " + fullname + ", hostname: " + hostname + ", port: " + port);
+            Debug.WriteLine("Resolved our service: " + args);
 
             // Record hostname
-            m_hostname = hostname;
+            m_hostname = args.Hostname;
 
             // Transition to RUNNING state
             m_state = State.RUNNING;
@@ -178,19 +202,19 @@ namespace StreamKinect2
             m_poller.AddSocket(m_controlSocket);
         }
 
-        void EventManager_ServiceRegistered(DNSSDService service, DNSSDFlags flags, string name, string regtype, string domain)
+        private void ZeroconfBrowser_ServiceRegistered(IZeroconfServiceBrowser browser, ServiceRegisteredArgs args)
         {
             // Only pay attention if we're waiting for it
             if (m_state != State.WAITING_FOR_REGISTRATION) { return; }
 
-            Debug.WriteLine("Registered our service, name: " + name + ", regtype: " + regtype + ", domain: " + domain);
+            Debug.WriteLine("Registered our service: " + args);
 
             // Record our name
-            m_name = name;
+            m_name = args.Name;
 
             // Service is now registered, resolve our hostname
             m_state = State.WAITING_FOR_RESOLVE;
-            service.Resolve(0, 0, name, regtype, domain, m_zcEventManager);
+            browser.Resolve(args.Name, args.RegType, args.Domain);
         }
 
         protected void ControlSocket_ReceiveReady(object sender, NetMQSocketEventArgs e)
