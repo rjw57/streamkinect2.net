@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{739EA8
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinect2Tests", "StreamKinect2Tests\StreamKinect2Tests.csproj", "{43251487-4C1F-4DEE-9150-45674E62D1D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +30,10 @@ Global
 		{9EE2EC81-1C7E-4DC8-B155-8844ABB51396}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EE2EC81-1C7E-4DC8-B155-8844ABB51396}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EE2EC81-1C7E-4DC8-B155-8844ABB51396}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43251487-4C1F-4DEE-9150-45674E62D1D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43251487-4C1F-4DEE-9150-45674E62D1D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43251487-4C1F-4DEE-9150-45674E62D1D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43251487-4C1F-4DEE-9150-45674E62D1D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
