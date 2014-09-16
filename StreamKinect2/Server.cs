@@ -83,6 +83,9 @@ namespace StreamKinect2
             }
         }
 
+        /// <summary>
+        /// Start the server registering it with the default Zeroconf service browser.
+        /// </summary>
         public void Start()
         {
             Start(new BonjourServiceBrowser());
