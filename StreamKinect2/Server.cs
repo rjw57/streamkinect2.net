@@ -1,5 +1,4 @@
-﻿using Bonjour;
-using NetMQ;
+﻿using NetMQ;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -46,6 +45,9 @@ namespace StreamKinect2
         private NetMQSocket m_controlSocket;
         private int m_controlSocketPort;
 
+        // Set of Kinect devices which we know about
+        private ISet<IKinectDevice> m_devices;
+
         public Server() : this(new Poller(), NetMQContext.Create())
         {
             // Start poller task
@@ -56,14 +58,14 @@ namespace StreamKinect2
 
         public Server(Poller poller, NetMQContext netMQContext)
         {
-            //KinectSensor[] sensors = KinectSensor.KinectSensors.Cast<KinectSensor>().ToArray();
-            //Debug.WriteLine("Number of sensors connected: " + sensors.Length);
-
             // Record the netMQ context we use to create the server.
             m_netMQContext = netMQContext;
 
             // Record the netMQ poller
             m_poller = poller;
+
+            // Initialise our set of devices
+            m_devices = new HashSet<IKinectDevice>();
         }
 
         public void Dispose()
@@ -141,19 +143,27 @@ namespace StreamKinect2
 
         public bool IsRunning { get { return m_state == State.RUNNING; } }
 
+        public void AddDevice(IKinectDevice device)
+        {
+            m_devices.Add(device);
+        }
+
+        public void RemoveDevice(IKinectDevice device)
+        {
+            m_devices.Remove(device);
+        }
+
         protected MePayload GetCurrentMe()
         {
             var devices = new List<DeviceRecord>();
-            /*
-            foreach(KinectSensor sensor in KinectSensor.KinectSensors)
+            foreach(var device in m_devices)
             {
                 devices.Add(new DeviceRecord
                 {
-                    id = sensor.UniqueKinectId,
+                    id = device.UniqueId,
                     endpoints = { },
                 });
             }
-             */
 
             return new MePayload
             {
