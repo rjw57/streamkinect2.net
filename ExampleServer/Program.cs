@@ -13,6 +13,7 @@ namespace ExampleServer
                 using (Server server = new Server(poller))
                 {
                     Task pollerTask = Task.Factory.StartNew(poller.Start);
+                    server.Start();
                     System.Console.WriteLine("Press Enter to stop server");
                     System.Console.ReadLine();
                     poller.Stop();

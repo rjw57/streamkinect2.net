@@ -65,9 +65,6 @@ namespace StreamKinect2
             // Register interest in service registraion
             m_zcEventManager.ServiceRegistered += EventManager_ServiceRegistered;
             m_zcEventManager.ServiceResolved += EventManager_ServiceResolved;
-
-            // Start the server.
-            Start();
         }
 
         public void Dispose()
@@ -79,7 +76,7 @@ namespace StreamKinect2
             }
         }
 
-        protected void Start()
+        public void Start()
         {
             // Ensure we're not running.
             if (m_state != State.STOPPED)
@@ -103,7 +100,7 @@ namespace StreamKinect2
             m_state = State.WAITING_FOR_REGISTRATION;
         }
 
-        protected void Stop()
+        public void Stop()
         {
             // Ensure we're running.
             if (m_state != State.RUNNING)
