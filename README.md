@@ -24,8 +24,10 @@ Windows SDK](http://www.microsoft.com/en-us/kinectforwindows/) version 2
 installed.
 
 Dependencies which may be re-distributed are located in the
-[dependencies](dependencies/) folder. Please read the
-[README](dependencies/README.md) for licensing information.
+[streamkinect2.net-depends](https://github.com/rjw57/streamkinect2.net-depends)
+repository. Please read the
+[README](https://github.com/rjw57/streamkinect2.net-depends/README.md)
+in that repository for licensing information.
 
 Additional dependencies are managed via [NuGet](https://www.nuget.org/).
 
