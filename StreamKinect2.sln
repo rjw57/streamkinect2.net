@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{739EA8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinect2Tests", "StreamKinect2Tests\StreamKinect2Tests.csproj", "{43251487-4C1F-4DEE-9150-45674E62D1D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinectGUI", "StreamKinectGUI\StreamKinectGUI.csproj", "{F78A0130-1AFE-456B-82D4-D94E3FE144B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamKinect2GUI", "StreamKinectGUI\StreamKinect2GUI.csproj", "{F78A0130-1AFE-456B-82D4-D94E3FE144B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
