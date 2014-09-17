@@ -52,5 +52,36 @@ namespace StreamKinect2Tests
             while (!m_server.IsRunning) { Thread.Sleep(100); }
             m_server.Stop();
         }
+
+        [TestMethod, Timeout(3000)]
+        public void ServerFiresStartedAndStoppedEvents()
+        {
+            Assert.IsFalse(m_server.IsRunning);
+            int startedCalls = 0, stoppedCalls = 0;
+
+            m_server.Started += (Server s) => startedCalls += 1;
+            m_server.Stopped += (Server s) => stoppedCalls += 1;
+
+            Debug.WriteLine("Starting server.");
+            m_server.Start(m_mockZcBrowser);
+
+            while (startedCalls==0)
+            {
+                Debug.WriteLine("startedCalls = " + startedCalls);
+                Thread.Sleep(100);
+            }
+
+            Debug.WriteLine("Stopping server.");
+            m_server.Stop();
+            while (stoppedCalls == 0)
+            {
+                Debug.WriteLine("stoppedCalls = " + stoppedCalls);
+                Thread.Sleep(100);
+            }
+
+            Assert.AreEqual(1, startedCalls);
+            Assert.AreEqual(1, stoppedCalls);
+        }
+
     }
 }
