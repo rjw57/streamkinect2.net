@@ -102,7 +102,7 @@ namespace StreamKinect2
                 var now = System.DateTime.Now;
 
                 var delta = now - then;
-                Thread.Sleep((int)(Math.Max(10, (1000 / 60) - delta.TotalMilliseconds)));
+                Thread.Sleep((int)(Math.Max(0, 1000 / 60 - delta.TotalMilliseconds)));
             }
         }
 
