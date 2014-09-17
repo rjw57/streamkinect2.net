@@ -1,4 +1,4 @@
-﻿namespace StreamKinectGUI
+﻿namespace StreamKinect2GUI
 {
     partial class MainForm
     {

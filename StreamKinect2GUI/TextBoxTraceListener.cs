@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Windows.Forms;
 
-namespace StreamKinectGUI
+namespace StreamKinect2GUI
 {
     class TextBoxTraceListener : TraceListener
     {
