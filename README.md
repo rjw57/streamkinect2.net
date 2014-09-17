@@ -15,6 +15,15 @@ SDK 2.0. In practice this means:
 * Windows 8.1
 * USB 3.0
 
+## Downloading
+
+A simple GUI server tool is automatically built by the continuous integration
+system and may be found in the [list of
+artifacts](https://ci.appveyor.com/project/rjw57/streamkinect2-net/build/artifacts)
+for the latest build. The GUI application is available in the
+``StreamKinect2GUI.zip`` file. Should the latest build be failing, you can
+doanload artifacts from an earlier one.
+
 ## Building
 
 You will need Visual Studio 2013 to build this software. The free (as in beer)
