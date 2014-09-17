@@ -159,7 +159,8 @@ namespace StreamKinect2
 
             m_poller.RemoveSocket(m_controlSocket);
             m_state = State.STOPPED;
-            Stopped(this);
+
+            if (Stopped != null) { Stopped(this); }
         }
 
         public Poller Poller { get { return m_poller; } }
@@ -254,7 +255,7 @@ namespace StreamKinect2
 
             // Transition to RUNNING state
             m_state = State.RUNNING;
-            Started(this);
+            if (Started != null) { Started(this); }
 
             // Now we can start polling for connections
             m_poller.AddSocket(m_controlSocket);
