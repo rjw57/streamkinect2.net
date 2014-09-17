@@ -110,13 +110,13 @@ namespace StreamKinect2
             {
                 throw new ServerException("Server already running");
             }
-            Debug.WriteLine("Starting server");
+            Trace.WriteLine("Starting server");
 
             // Create a control endpoint socket and bind it to a random port
             m_controlSocket = m_netMQContext.CreateResponseSocket();
             m_controlSocketPort = m_controlSocket.BindRandomPort("tcp://0.0.0.0");
             m_controlSocket.ReceiveReady += ControlSocket_ReceiveReady;
-            Debug.WriteLine("Server control socket bound to port: " + m_controlSocketPort);
+            Trace.WriteLine("Server control socket bound to port: " + m_controlSocketPort);
 
             // Wire up our event handlers to the browser
             m_zcBrowser = zcBrowser;
@@ -127,7 +127,7 @@ namespace StreamKinect2
             m_state = State.WAITING_FOR_REGISTRATION;
 
             // Register the server with ZeroConf
-            Debug.WriteLine("Registering with ZeroConf");
+            Trace.WriteLine("Registering with ZeroConf");
             zcBrowser.Register("Kinect stream on " + System.Environment.MachineName, "_kinect2._tcp", (ushort) m_controlSocketPort);
         }
 
@@ -139,7 +139,7 @@ namespace StreamKinect2
             {
                 throw new ServerException("Server not running");
             }
-            Debug.WriteLine("Stopping server");
+            Trace.WriteLine("Stopping server");
 
             // Remove all endpoints for all devices
             foreach(var device in m_devices)
@@ -221,7 +221,7 @@ namespace StreamKinect2
 
         protected void SendReply(MessageType type, Payload payload = null)
         {
-            System.Diagnostics.Debug.WriteLine("Send type: " + type);
+            System.Diagnostics.Trace.WriteLine("Send type: " + type);
 
             byte[] typeFrame = { (byte)type, };
             m_controlSocket.Send(typeFrame, 1, false, payload != null);
@@ -265,7 +265,7 @@ namespace StreamKinect2
             // Only pay attention if we're waiting for it
             if (m_state != State.WAITING_FOR_REGISTRATION) { return; }
 
-            Debug.WriteLine("Registered our service: " + args);
+            Trace.WriteLine("Registered our service: " + args);
 
             // Record our name
             m_name = args.Name;
@@ -305,7 +305,7 @@ namespace StreamKinect2
             }
 
             // Parse type and payload
-            System.Diagnostics.Debug.WriteLine("Received type: " + type);
+            System.Diagnostics.Trace.WriteLine("Received type: " + type);
 
             // Switch on type:
             switch (type)
