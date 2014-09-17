@@ -45,3 +45,11 @@ Additional dependencies are managed via [NuGet](https://www.nuget.org/).
 Copyright 2014, Rich Wareham. This software is licensed under a BSD 2-clause
 licence. See the [LICENSE](LICENSE.txt) file included with the source
 distribution.
+
+## Attributions
+
+The StreamKinec2GUI icon was made from the following resources:
+
+* [Kinect icon on Iconfinder](https://www.iconfinder.com/icons/98879/kinect_icon)
+* [Share icon on Iconfinder](https://www.iconfinder.com/icons/216719/share_icon)
+
