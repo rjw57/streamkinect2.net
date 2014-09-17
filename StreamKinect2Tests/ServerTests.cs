@@ -2,8 +2,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StreamKinect2;
 using System.Threading;
-using System.Collections.Generic;
-using System;
 using StreamKinect2Tests.Mocks;
 
 namespace StreamKinect2Tests
