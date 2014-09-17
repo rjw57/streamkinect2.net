@@ -33,7 +33,7 @@ namespace StreamKinect2Tests.Mocks
             // Record this service
             m_nameRegTypeToPort.Add(Tuple.Create(name, regType), port);
 
-            Debug.WriteLine("Mock Zeroconf Browser signalling register: " + args);
+            Trace.WriteLine("Mock Zeroconf Browser signalling register: " + args);
             ServiceRegistered(this, args);
         }
 
@@ -46,7 +46,7 @@ namespace StreamKinect2Tests.Mocks
             }
             catch (KeyNotFoundException)
             {
-                Debug.WriteLine("Mock Zeroconf Browser failed to resolve: " + name + ", " + regType + ", " + domain);
+                Trace.WriteLine("Mock Zeroconf Browser failed to resolve: " + name + ", " + regType + ", " + domain);
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace StreamKinect2Tests.Mocks
                 Port = port,
             };
 
-            Debug.WriteLine("Mock Zeroconf Browser resolving: " + args);
+            Trace.WriteLine("Mock Zeroconf Browser resolving: " + args);
             ServiceResolved(this, args);
         }
     }
