@@ -55,6 +55,7 @@
     <Compile Include="Mocks.cs" />
     <Compile Include="ServerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimulatedKinectTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamKinect2\StreamKinect2.csproj">
