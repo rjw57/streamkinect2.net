@@ -31,11 +31,25 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <Choose>
+    <When Condition="$(PROCESSOR_ARCHITECTURE) == 'AMD64' Or $(PROCESSOR_ARCHITEW6432) == 'AMD64'">
+      <ItemGroup>
+        <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=AMD64">
+          <SpecificVersion>False</SpecificVersion>
+          <HintPath>..\depends\x64\Microsoft.Kinect.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=x86">
+          <SpecificVersion>False</SpecificVersion>
+          <HintPath>..\depends\x86\Microsoft.Kinect.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
-    <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\depends\MSIL\Microsoft.Kinect.dll</HintPath>
-    </Reference>
     <Reference Include="NetMQ">
       <HintPath>..\packages\NetMQ.3.3.0.10\lib\net40\NetMQ.dll</HintPath>
     </Reference>
