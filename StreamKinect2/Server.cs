@@ -16,8 +16,13 @@ namespace StreamKinect2
         public ServerException(string message) : base(message) { }
     }
 
+    public delegate void ServerStopStartHandler(Server server);
+
     public class Server : IDisposable
     {
+        public event ServerStopStartHandler Started;
+        public event ServerStopStartHandler Stopped;
+
         private enum State
         {
             STOPPED,                    // Server is stopped, can be started
@@ -154,6 +159,7 @@ namespace StreamKinect2
 
             m_poller.RemoveSocket(m_controlSocket);
             m_state = State.STOPPED;
+            Stopped(this);
         }
 
         public Poller Poller { get { return m_poller; } }
@@ -241,13 +247,14 @@ namespace StreamKinect2
             if (m_state != State.WAITING_FOR_RESOLVE) { return; }
             if (args.Port != m_controlSocketPort) { return; }
 
-            Debug.WriteLine("Resolved our service: " + args);
+            Trace.WriteLine("Resolved our service: " + args);
 
             // Record hostname
             m_hostname = args.Hostname;
 
             // Transition to RUNNING state
             m_state = State.RUNNING;
+            Started(this);
 
             // Now we can start polling for connections
             m_poller.AddSocket(m_controlSocket);
