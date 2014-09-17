@@ -45,7 +45,7 @@ namespace StreamKinect2
         public event ServiceResolvedHandler ServiceResolved;
 
         private DNSSDEventManager m_eventManager;
-        private DNSSDService m_service;
+        private DNSSDService m_service, m_registrar;
 
         public BonjourServiceBrowser()
         {
@@ -59,7 +59,7 @@ namespace StreamKinect2
 
         public void Register(string name, string regType, ushort port)
         {
-            m_service.Register(0, 0, name, regType, null, null, port, null, m_eventManager);
+            m_registrar = m_service.Register(0, 0, name, regType, null, null, port, null, m_eventManager);
         }
 
         public void Resolve(string name, string regType, string domain)
