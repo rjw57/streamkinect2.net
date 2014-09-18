@@ -39,7 +39,11 @@ namespace StreamKinect2Tests
         {
             int depthFrames = 0;
             using(IDepthFrameSource dfs = m_device.DepthFrameSource) {
-                dfs.DepthFrame += (source, args) => depthFrames += 1;
+                dfs.DepthFrame += (source, args) =>
+                {
+                    Debug.WriteLine("Got frame.");
+                    depthFrames += 1;
+                };
                 dfs.Start();
                 Thread.Sleep(1000);
             }
