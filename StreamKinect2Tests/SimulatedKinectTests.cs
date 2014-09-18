@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StreamKinect2;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace StreamKinect2Tests
 {
@@ -37,20 +38,20 @@ namespace StreamKinect2Tests
         [TestMethod]
         public void DepthFrameHandlerCalledEnough()
         {
-            int depthFrames = 0;
+            var state = new Dictionary<string, object> { { "DepthFrames", 0 } };
             using(IDepthFrameSource dfs = m_device.DepthFrameSource) {
                 dfs.DepthFrame += (source, args) =>
                 {
                     Debug.WriteLine("Got frame.");
-                    depthFrames += 1;
+                    state["DepthFrames"] = (int)(state["DepthFrames"]) + 1;
                 };
                 dfs.Start();
                 Thread.Sleep(1000);
             }
-            Debug.WriteLine("Waited one second and received " + depthFrames + " frames.");
+            Debug.WriteLine("Waited one second and received " + state["DepthFrames"] + " frames.");
             
             // Be generous in what we accept here to be kind to CI systems
-            Assert.IsTrue(depthFrames > 15);
+            Assert.IsTrue((int)state["DepthFrames"] > 15);
         }
 
         [TestMethod, Timeout(3000)]
