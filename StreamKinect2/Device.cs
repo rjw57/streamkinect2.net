@@ -95,7 +95,9 @@ namespace StreamKinect2
                 for (int y = 0; y < args.Height; y++)
                     for (int x = 0; x < args.Width; x++)
                     {
-                        args.FrameData[x + (y * args.Width)] = 100;
+                        args.FrameData[x + (y * args.Width)] = (UInt16)(
+                            1024 * (1.2 + Math.Sin(x * 0.1) * Math.Sin(0.3 + (y + 0.2 * x) * 0.2))
+                        );
                     }
 
                 DepthFrame(this, args);
