@@ -38,36 +38,53 @@ namespace StreamKinect2Tests
         [TestMethod]
         public void DepthFrameHandlerCalledEnough()
         {
-            var state = new Dictionary<string, object> { { "DepthFrames", 0 } };
-            using(IDepthFrameSource dfs = m_device.DepthFrameSource) {
-                dfs.DepthFrame += (source, args) =>
-                {
-                    Debug.WriteLine("Got frame.");
-                    state["DepthFrames"] = (int)(state["DepthFrames"]) + 1;
-                };
-                dfs.Start();
-                Thread.Sleep(1000);
-            }
-            Debug.WriteLine("Waited one second and received " + state["DepthFrames"] + " frames.");
+            int depthFrames = 0;
+
+            m_device.DepthFrameSource.DepthFrame += (source, args) =>
+            {
+                Debug.WriteLine("Got frame.");
+                depthFrames += 1;
+            };
+
+            m_device.DepthFrameSource.Start();
+            Thread.Sleep(1000);
+            m_device.DepthFrameSource.Stop();
+
+            Debug.WriteLine("Waited one second and received " + depthFrames + " frames.");
             
             // Be generous in what we accept here to be kind to CI systems
-            Assert.IsTrue((int)state["DepthFrames"] > 15);
+            Assert.IsTrue(depthFrames > 15);
+        }
+
+        [TestMethod, Timeout(3000)]
+        public void DepthFrameCalledAtLeastOnce()
+        {
+            var gotFrame = new AutoResetEvent(false);
+            m_device.DepthFrameSource.DepthFrame += (source, args) => gotFrame.Set();
+            m_device.DepthFrameSource.Start();
+            gotFrame.WaitOne();
+            m_device.DepthFrameSource.Stop();
         }
 
         [TestMethod, Timeout(3000)]
         public void DepthFrameIs1080p()
         {
+            var gotFrame = new AutoResetEvent(false);
+
             int depthFrames = 0, frameWidth = 0, frameHeight = 0;
-            using(IDepthFrameSource dfs = m_device.DepthFrameSource) {
-                dfs.DepthFrame += (source, args) =>
-                {
-                    depthFrames += 1;
-                    frameWidth = args.Width;
-                    frameHeight = args.Height;
-                };
-                dfs.Start();
-                while (depthFrames == 0) { Thread.Sleep(100); }
-            }
+            m_device.DepthFrameSource.DepthFrame += (source, args) =>
+            {
+                depthFrames += 1;
+                frameWidth = args.Width;
+                frameHeight = args.Height;
+
+                gotFrame.Set();
+            };
+
+            m_device.DepthFrameSource.Start();
+            gotFrame.WaitOne();
+            m_device.DepthFrameSource.Stop();
+
             Assert.AreEqual(1920, frameWidth);
             Assert.AreEqual(1080, frameHeight);
         }
@@ -75,18 +92,20 @@ namespace StreamKinect2Tests
         [TestMethod, Timeout(3000)]
         public void DepthFrameIsOnly12Bit()
         {
-            UInt16[] frameCopy = new UInt16[1920*1080];
+            var gotFrame = new AutoResetEvent(false);
+            UInt16[] frameCopy = new UInt16[1920 * 1080];
             int depthFrames = 0;
-            using(IDepthFrameSource dfs = m_device.DepthFrameSource) {
-                dfs.DepthFrame += (device, args) =>
-                {
-                    depthFrames += 1;
-                    Assert.IsTrue(args.FrameData.Length <= frameCopy.Length);
-                    args.FrameData.CopyTo(frameCopy, 0);
-                };
-                dfs.Start();
-                while (depthFrames == 0) { Thread.Sleep(100); }
-            }
+            m_device.DepthFrameSource.DepthFrame += (source, args) =>
+            {
+                depthFrames += 1;
+                Assert.IsTrue(args.FrameData.Length <= frameCopy.Length);
+                args.FrameData.CopyTo(frameCopy, 0);
+                gotFrame.Set();
+            };
+
+            m_device.DepthFrameSource.Start();
+            gotFrame.WaitOne();
+            m_device.DepthFrameSource.Stop();
 
             foreach(UInt16 v in frameCopy)
             {
