@@ -47,9 +47,9 @@ namespace StreamKinect2
         {
             var args = new DepthFrameHandlerArgs
             {
-                Width = 1920,
-                Height = 1080,
-                FrameData = new UInt16[1920 * 1080],
+                Width = 512,
+                Height = 424,
+                FrameData = new UInt16[512 * 424],
             };
 
             while (!m_taskShouldExit)
@@ -61,11 +61,13 @@ namespace StreamKinect2
                         args.FrameData[x + (y * args.Width)] = (UInt16)(x & ((1 << 12) - 1));
                     }
 
-                DepthFrame(this, args);
+                var e = DepthFrame;
+                if (e != null) { e(this, args);  }
+
                 var now = System.DateTime.Now;
 
                 var delta = now - then;
-                Thread.Sleep((int)(Math.Max(0, 1000 / 60 - delta.TotalMilliseconds)));
+                Thread.Sleep((int)(Math.Max(0, (1000 / 30) - delta.TotalMilliseconds)));
             }
         }
 

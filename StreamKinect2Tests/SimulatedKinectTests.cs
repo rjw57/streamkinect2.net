@@ -67,7 +67,7 @@ namespace StreamKinect2Tests
         }
 
         [TestMethod, Timeout(3000)]
-        public void DepthFrameIs1080p()
+        public void DepthFrameIsExpectedSize()
         {
             var gotFrame = new AutoResetEvent(false);
 
@@ -85,8 +85,8 @@ namespace StreamKinect2Tests
             gotFrame.WaitOne();
             m_device.DepthFrameSource.Stop();
 
-            Assert.AreEqual(1920, frameWidth);
-            Assert.AreEqual(1080, frameHeight);
+            Assert.AreEqual(512, frameWidth);
+            Assert.AreEqual(424, frameHeight);
         }
 
         [TestMethod, Timeout(3000)]
