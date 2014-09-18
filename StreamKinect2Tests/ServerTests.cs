@@ -56,26 +56,19 @@ namespace StreamKinect2Tests
         {
             Assert.IsFalse(m_server.IsRunning);
             int startedCalls = 0, stoppedCalls = 0;
+            var started = new AutoResetEvent(false);
+            var stopped = new AutoResetEvent(false);
 
-            m_server.Started += (Server s) => startedCalls += 1;
-            m_server.Stopped += (Server s) => stoppedCalls += 1;
+            m_server.Started += (Server s) => { startedCalls += 1; started.Set(); };
+            m_server.Stopped += (Server s) => { stoppedCalls += 1; stopped.Set(); };
 
             Debug.WriteLine("Starting server.");
             m_server.Start(m_mockZcBrowser);
-
-            while (startedCalls==0)
-            {
-                Debug.WriteLine("startedCalls = " + startedCalls);
-                Thread.Sleep(100);
-            }
+            started.WaitOne();
 
             Debug.WriteLine("Stopping server.");
             m_server.Stop();
-            while (stoppedCalls == 0)
-            {
-                Debug.WriteLine("stoppedCalls = " + stoppedCalls);
-                Thread.Sleep(100);
-            }
+            stopped.WaitOne();
 
             Assert.AreEqual(1, startedCalls);
             Assert.AreEqual(1, stoppedCalls);
