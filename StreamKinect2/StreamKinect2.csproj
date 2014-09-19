@@ -104,6 +104,7 @@
   <ItemGroup>
     <Compile Include="DepthFrameCompressor.cs" />
     <Compile Include="Device.cs" />
+    <Compile Include="KinectDevice.cs" />
     <Compile Include="SimulatedDevice.cs" />
     <Compile Include="Zeroconf.cs" />
     <Compile Include="Common.cs" />
