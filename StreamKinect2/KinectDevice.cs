@@ -11,10 +11,16 @@ namespace StreamKinect2
     public class KinectDevice : IDevice
     {
         public static KinectDevice DefaultDevice = CreateDefaultDevice();
+        private KinectSensor sensor;
+
+        private KinectDevice(KinectSensor sensor)
+        {
+            this.sensor = sensor;
+        }
 
         public string UniqueId
         {
-            get { throw new NotImplementedException(); }
+            get { return this.sensor.UniqueKinectId; }
         }
 
         public IDepthFrameSource DepthFrameSource
@@ -31,7 +37,7 @@ namespace StreamKinect2
                 return null;
             }
 
-            return null;
+            return new KinectDevice(defaultSensor);
         }
     }
 }
