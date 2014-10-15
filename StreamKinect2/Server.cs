@@ -18,45 +18,107 @@ namespace StreamKinect2
 
     public delegate void ServerStopStartHandler(Server server);
 
+    internal class DeviceEndpoint
+    {
+        public string Address;
+        public NetMQSocket Socket;
+    }
+
+    internal delegate void ServerDeviceCompressedDepthFrameHandler(ServerDevice device, byte[] data);
+
     internal class ServerDevice : IDisposable
     {
+        public event ServerDeviceCompressedDepthFrameHandler CompressedDepthFrame;
+
+        private bool m_isDisposed = false;
+        private bool m_isStarted = false;
+
         private IDevice m_device;
         private DepthFrameCompressor m_depthFrameCompressor;
+        private IDictionary<string, DeviceEndpoint> m_endpoints;
 
         public ServerDevice(IDevice device)
         {
             m_device = device;
-            m_depthFrameCompressor = new DepthFrameCompressor();
-            m_depthFrameCompressor.CompressedDepthFrame += DepthFrameCompressor_CompressedDepthFrame;
-
-            m_device.DepthFrameSource.DepthFrame += DepthFrameSource_DepthFrame;
-            m_device.DepthFrameSource.Start();
+            m_endpoints = new Dictionary<string, DeviceEndpoint>();
         }
 
         ~ServerDevice()
         {
-            Dispose();
+            if (!m_isDisposed)
+            {
+                Dispose();
+            }
         }
 
-        public void Dispose()
+        public void Start()
+        {
+            if (!m_device.DepthFrameSource.IsRunning)
+            {
+                m_device.DepthFrameSource.Start();
+            }
+            m_device.DepthFrameSource.DepthFrame += DepthFrameSource_DepthFrame;
+        }
+
+        public void CreateEndpointsIfNecessary(NetMQContext ctx, string hostname)
+        {
+            if (!m_endpoints.ContainsKey(EndpointType.DEPTH))
+            {
+                // Create depth frame endpoint
+                var depthSocket = ctx.CreatePublisherSocket();
+                var depthSocketPort = depthSocket.BindRandomPort("tcp://0.0.0.0");
+                m_endpoints[EndpointType.DEPTH] = new DeviceEndpoint
+                {
+                    Address = "tcp://" + hostname + ":" + depthSocketPort,
+                    Socket = depthSocket,
+                };
+
+                Debug.WriteLine("Created depth frame endpoint at: " + m_endpoints[EndpointType.DEPTH].Address);
+            }
+        }
+
+        public void Stop()
         {
             if (m_device.DepthFrameSource.IsRunning)
             {
                 m_device.DepthFrameSource.Stop();
             }
+            m_device.DepthFrameSource.DepthFrame -= DepthFrameSource_DepthFrame;
+
+            // Close endpoints
+            foreach (var endpoint in m_endpoints)
+            {
+                endpoint.Value.Socket.Close();
+            }
+            m_endpoints.Clear();
         }
 
-        private void DepthFrameCompressor_CompressedDepthFrame(DepthFrameCompressor compressor, byte[] data)
+        public void Dispose()
         {
-            Console.WriteLine("> " + data.Length);
+            if (m_isDisposed)
+            {
+                return;
+            }
+
+            if (m_isStarted)
+            {
+                Stop();
+            }
+
+            m_isDisposed = true;
         }
 
         private void DepthFrameSource_DepthFrame(IDepthFrameSource source, DepthFrameHandlerArgs args)
         {
-            m_depthFrameCompressor.NewDepthFrame(source, args);
+            // Don't do anything if we've not got a depth frame endpoint
+            if (!m_endpoints.ContainsKey(EndpointType.DEPTH))
+            {
+                return;
+            }
         }
 
         public IDevice Device { get { return m_device; } }
+        public IDictionary<string, DeviceEndpoint> Endpoints { get { return m_endpoints; } }
     }
 
     public class Server : IDisposable
@@ -70,12 +132,6 @@ namespace StreamKinect2
             WAITING_FOR_REGISTRATION,   // Waiting for ZeroConf registration callback
             WAITING_FOR_RESOLVE,        // Waiting for ZeroConf resolution to discover our hostname
             RUNNING,                    // Server is running
-        }
-
-        private class DeviceEndpoint
-        {
-            public string      Address;
-            public NetMQSocket Socket;
         }
 
         // Zeroconf browser we're using to register ourselves
@@ -98,7 +154,6 @@ namespace StreamKinect2
         private int m_controlSocketPort;
 
         // Set of Kinect devices which we know about
-        private IDictionary<ServerDevice, IDictionary<string, DeviceEndpoint>> m_devices;
         private Dictionary<IDevice, ServerDevice> m_deviceToServerDevice;
 
         public Server() : this(new Poller(), NetMQContext.Create())
@@ -118,7 +173,6 @@ namespace StreamKinect2
             m_poller = poller;
 
             // Initialise our set of devices
-            m_devices = new Dictionary<ServerDevice, IDictionary<string, DeviceEndpoint>>();
             m_deviceToServerDevice = new Dictionary<IDevice, ServerDevice>();
         }
 
@@ -185,14 +239,9 @@ namespace StreamKinect2
             Trace.WriteLine("Stopping server");
 
             // Remove all endpoints for all devices
-            foreach(var device in m_devices)
+            foreach(var device in m_deviceToServerDevice)
             {
-                var endpoints = device.Value;
-                foreach(var endpoint in endpoints)
-                {
-                    endpoint.Value.Socket.Close();
-                }
-                endpoints.Clear();
+                device.Value.Stop();
             }
 
             // Stop being interested in Zeroconf events
@@ -214,35 +263,22 @@ namespace StreamKinect2
         {
             var serverDevice = new ServerDevice(device);
             m_deviceToServerDevice.Add(device, serverDevice);
-            m_devices.Add(serverDevice, new Dictionary<string, DeviceEndpoint>());
+            serverDevice.Start();
         }
 
         public void RemoveDevice(IDevice device)
         {
-            var serverDevice = m_deviceToServerDevice[device];
-            m_devices.Remove(serverDevice);
             m_deviceToServerDevice.Remove(device);
         }
 
         protected MePayload GetCurrentMe()
         {
             var devices = new List<DeviceRecord>();
-            foreach(var device in m_devices)
+            foreach(var device in m_deviceToServerDevice)
             {
-                var endpoints = device.Value;
+                device.Value.CreateEndpointsIfNecessary(m_netMQContext, m_hostname);
 
-                // create endpoints for device if this is the first time we've been asked about it
-                if (endpoints.Count == 0)
-                {
-                    var depthSocket = m_netMQContext.CreatePublisherSocket();
-                    var depthSocketPort = depthSocket.BindRandomPort("tcp://0.0.0.0");
-                    endpoints[EndpointTypes.DEPTH] = new DeviceEndpoint
-                    {
-                        Address = "tcp://" + m_hostname + ":" + depthSocketPort,
-                        Socket = depthSocket,
-                    };
-                }
-
+                var endpoints = device.Value.Endpoints;
                 var endpointPayload = new Dictionary<string, string>(); 
                 foreach(var endpoint in endpoints)
                 {
@@ -251,7 +287,7 @@ namespace StreamKinect2
                 
                 devices.Add(new DeviceRecord
                 {
-                    id = device.Key.Device.UniqueId,
+                    id = device.Key.UniqueId,
                     endpoints = endpointPayload,
                 });
             }
@@ -261,7 +297,7 @@ namespace StreamKinect2
                 version = 1,
                 name = m_name,
                 endpoints = new Dictionary<string, string> {
-                    { EndpointTypes.CONTROL, "tcp://" + m_hostname + ":" + m_controlSocketPort },
+                    { EndpointType.CONTROL, "tcp://" + m_hostname + ":" + m_controlSocketPort },
                 },
                 devices = devices,
             };

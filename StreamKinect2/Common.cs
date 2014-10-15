@@ -34,7 +34,7 @@ namespace StreamKinect2
         public IList<DeviceRecord> devices;
     }
 
-    public sealed class EndpointTypes
+    public sealed class EndpointType
     {
         public static string CONTROL = "control";
         public static string DEPTH = "depth";

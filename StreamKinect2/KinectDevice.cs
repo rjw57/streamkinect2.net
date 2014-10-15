@@ -75,7 +75,7 @@ namespace StreamKinect2
                 }
             }
 
-            if (m_isRunning && (DepthFrame != null))
+            if (m_isRunning)
             {
                 var depthFrameArgs = new DepthFrameHandlerArgs
                 {
@@ -84,7 +84,10 @@ namespace StreamKinect2
                     FrameData = depthPixels,
                 };
 
-                DepthFrame(this, depthFrameArgs);
+                if (DepthFrame != null)
+                {
+                    DepthFrame(this, depthFrameArgs);
+                }
             }
         }
 
