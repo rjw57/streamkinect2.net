@@ -36,11 +36,14 @@ namespace StreamKinect2
         private IDevice m_device;
         private DepthFrameCompressor m_depthFrameCompressor;
         private IDictionary<string, DeviceEndpoint> m_endpoints;
+        private DepthFrameCompressor m_compressor;
 
         public ServerDevice(IDevice device)
         {
             m_device = device;
             m_endpoints = new Dictionary<string, DeviceEndpoint>();
+            m_compressor = new DepthFrameCompressor();
+            m_compressor.CompressedDepthFrame += OnCompressedDepthFrame;
         }
 
         ~ServerDevice()
@@ -115,6 +118,19 @@ namespace StreamKinect2
             {
                 return;
             }
+
+            m_compressor.NewDepthFrame(source, args);
+        }
+
+        private void OnCompressedDepthFrame(DepthFrameCompressor compressor, byte[] data)
+        {
+            // Don't do anything if we've not got a depth frame endpoint
+            if (!m_endpoints.ContainsKey(EndpointType.DEPTH))
+            {
+                return;
+            }
+
+            m_endpoints[EndpointType.DEPTH].Socket.Send(data, data.Length, true);
         }
 
         public IDevice Device { get { return m_device; } }
