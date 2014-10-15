@@ -52,25 +52,11 @@ namespace StreamKinect2
                 var outputStream = new MemoryStream();
                 var stream = new Lz4CompressionStream(outputStream);
 
-                // Add highbits to stream
+                // Write data to stream in big endian (aka network) order
                 foreach (var datum in data)
                 {
-                    stream.WriteByte((byte)(datum >> 4));
-                }
-
-                // Add lowbits
-                for (var idx = 0; idx < data.Length; idx += 2)
-                {
-                    if (idx + 1 < data.Length)
-                    {
-                        stream.WriteByte((byte)(
-                            ((data[idx] & 0xf) << 4) | (data[idx + 1] & 0xf)
-                        ));
-                    }
-                    else
-                    {
-                        stream.WriteByte((byte)((data[idx] & 0xf) << 4));
-                    }
+                    stream.WriteByte((byte)(datum >> 8));
+                    stream.WriteByte((byte)(datum & 0xff));
                 }
 
                 // Send event
