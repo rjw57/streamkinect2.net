@@ -1,8 +1,10 @@
-﻿using Microsoft.Kinect;
+﻿using Lz4Net;
+using Microsoft.Kinect;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,24 +14,16 @@ namespace StreamKinect2
     {
         public event DepthFrameHandler DepthFrame;
 
-        private DepthFrameReader depthFrameReader;
-        private bool isRunning;
-        private FrameDescription depthFrameDescription;
-        private DepthFrameHandlerArgs depthFrameArgs;
+        private DepthFrameReader m_depthFrameReader;
+        private bool m_isRunning;
+        private FrameDescription m_depthFrameDescription;
 
         public KinectDeviceDepthFrameSource(DepthFrameReader depthFrameReader)
         {
-            this.depthFrameReader = depthFrameReader;
-            this.depthFrameDescription = depthFrameReader.DepthFrameSource.FrameDescription;
-            this.depthFrameReader.FrameArrived += depthFrameReader_FrameArrived;
-            this.isRunning = false;
-
-            this.depthFrameArgs = new DepthFrameHandlerArgs
-            {
-                Width = this.depthFrameDescription.Width,
-                Height = this.depthFrameDescription.Height,
-                FrameData = new UInt16[this.depthFrameDescription.Width * this.depthFrameDescription.Height],
-            };
+            this.m_depthFrameReader = depthFrameReader;
+            this.m_depthFrameDescription = depthFrameReader.DepthFrameSource.FrameDescription;
+            this.m_depthFrameReader.FrameArrived += depthFrameReader_FrameArrived;
+            this.m_isRunning = false;
         }
 
         private void depthFrameReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
@@ -43,14 +37,14 @@ namespace StreamKinect2
                     using (Microsoft.Kinect.KinectBuffer depthBuffer = depthFrame.LockImageBuffer())
                     {
                         // verify data and write the color data to the display bitmap
-                        if ((this.depthFrameDescription.Width * this.depthFrameDescription.Height) == (depthBuffer.Size / this.depthFrameDescription.BytesPerPixel))
+                        if ((this.m_depthFrameDescription.Width * this.m_depthFrameDescription.Height) == (depthBuffer.Size / this.m_depthFrameDescription.BytesPerPixel))
                         {
                             // Note: In order to see the full range of depth (including the less reliable far field depth)
                             // we are setting maxDepth to the extreme potential depth threshold
                             ushort maxDepth = ushort.MaxValue;
 
                             // If you wish to filter by reliable depth distance, uncomment the following line:
-                            //// maxDepth = depthFrame.DepthMaxReliableDistance
+                            maxDepth = depthFrame.DepthMaxReliableDistance;
 
                             this.ProcessDepthFrameData(depthBuffer.UnderlyingBuffer, depthBuffer.Size, depthFrame.DepthMinReliableDistance, maxDepth);
                         }
@@ -59,29 +53,54 @@ namespace StreamKinect2
             }
         }
 
+        // This function required /unsafe due to the direct pointer access below:
         private void ProcessDepthFrameData(IntPtr depthFrameData, uint depthFrameDataSize, ushort minDepth, ushort maxDepth)
         {
-            // depth frame data is a 16 bit value
-            //ushort* frameData = (ushort*)depthFrameData;
+            var depthPixels = new UInt16[m_depthFrameDescription.Width * m_depthFrameDescription.Height];
+            
+            unsafe
+            {
+                // depth frame data is a 16 bit value
+                UInt16* frameData = (UInt16*)depthFrameData;
 
-            if (DepthFrame != null) {
+                // convert depth to a visual representation
+                for (int i = 0; i < (int)(depthFrameDataSize / this.m_depthFrameDescription.BytesPerPixel); ++i)
+                {
+                    // Get the depth for this pixel
+                    UInt16 depth = frameData[i];
+
+                    // To convert to a byte, we're mapping the depth value to the byte range.
+                    // Values outside the reliable depth range are mapped to 0 (black).
+                    depthPixels[i] = (depth >= minDepth && depth <= maxDepth) ? depth : (UInt16)0;
+                }
+            }
+
+            if (m_isRunning && (DepthFrame != null))
+            {
+                var depthFrameArgs = new DepthFrameHandlerArgs
+                {
+                    Width = this.m_depthFrameDescription.Width,
+                    Height = this.m_depthFrameDescription.Height,
+                    FrameData = depthPixels,
+                };
+
                 DepthFrame(this, depthFrameArgs);
             }
         }
 
         public bool IsRunning
         {
-            get { return this.isRunning; }
+            get { return this.m_isRunning; }
         }
 
         public void Start()
         {
-            this.isRunning = true;
+            this.m_isRunning = true;
         }
 
         public void Stop()
         {
-            this.isRunning = false;
+            this.m_isRunning = false;
         }
 
         public void Dispose()

@@ -18,6 +18,47 @@ namespace StreamKinect2
 
     public delegate void ServerStopStartHandler(Server server);
 
+    internal class ServerDevice : IDisposable
+    {
+        private IDevice m_device;
+        private DepthFrameCompressor m_depthFrameCompressor;
+
+        public ServerDevice(IDevice device)
+        {
+            m_device = device;
+            m_depthFrameCompressor = new DepthFrameCompressor();
+            m_depthFrameCompressor.CompressedDepthFrame += DepthFrameCompressor_CompressedDepthFrame;
+
+            m_device.DepthFrameSource.DepthFrame += DepthFrameSource_DepthFrame;
+            m_device.DepthFrameSource.Start();
+        }
+
+        ~ServerDevice()
+        {
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (m_device.DepthFrameSource.IsRunning)
+            {
+                m_device.DepthFrameSource.Stop();
+            }
+        }
+
+        private void DepthFrameCompressor_CompressedDepthFrame(DepthFrameCompressor compressor, byte[] data)
+        {
+            Console.WriteLine("> " + data.Length);
+        }
+
+        private void DepthFrameSource_DepthFrame(IDepthFrameSource source, DepthFrameHandlerArgs args)
+        {
+            m_depthFrameCompressor.NewDepthFrame(source, args);
+        }
+
+        public IDevice Device { get { return m_device; } }
+    }
+
     public class Server : IDisposable
     {
         public event ServerStopStartHandler Started;
@@ -57,7 +98,8 @@ namespace StreamKinect2
         private int m_controlSocketPort;
 
         // Set of Kinect devices which we know about
-        private IDictionary<IDevice, IDictionary<string, DeviceEndpoint>> m_devices;
+        private IDictionary<ServerDevice, IDictionary<string, DeviceEndpoint>> m_devices;
+        private Dictionary<IDevice, ServerDevice> m_deviceToServerDevice;
 
         public Server() : this(new Poller(), NetMQContext.Create())
         {
@@ -76,7 +118,8 @@ namespace StreamKinect2
             m_poller = poller;
 
             // Initialise our set of devices
-            m_devices = new Dictionary<IDevice, IDictionary<string, DeviceEndpoint>>();
+            m_devices = new Dictionary<ServerDevice, IDictionary<string, DeviceEndpoint>>();
+            m_deviceToServerDevice = new Dictionary<IDevice, ServerDevice>();
         }
 
         public void Dispose()
@@ -169,12 +212,16 @@ namespace StreamKinect2
 
         public void AddDevice(IDevice device)
         {
-            m_devices.Add(device, new Dictionary<string, DeviceEndpoint>());
+            var serverDevice = new ServerDevice(device);
+            m_deviceToServerDevice.Add(device, serverDevice);
+            m_devices.Add(serverDevice, new Dictionary<string, DeviceEndpoint>());
         }
 
         public void RemoveDevice(IDevice device)
         {
-            m_devices.Remove(device);
+            var serverDevice = m_deviceToServerDevice[device];
+            m_devices.Remove(serverDevice);
+            m_deviceToServerDevice.Remove(device);
         }
 
         protected MePayload GetCurrentMe()
@@ -204,7 +251,7 @@ namespace StreamKinect2
                 
                 devices.Add(new DeviceRecord
                 {
-                    id = device.Key.UniqueId,
+                    id = device.Key.Device.UniqueId,
                     endpoints = endpointPayload,
                 });
             }

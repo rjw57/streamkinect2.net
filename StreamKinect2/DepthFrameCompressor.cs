@@ -40,7 +40,7 @@ namespace StreamKinect2
         {
             if(m_compressionTasks.Count > MAX_IN_FLIGHT)
             {
-                Debug.WriteLine("Dropping incoming septh frame.");
+                Debug.WriteLine("Dropping incoming depth frame.");
                 return;
             }
 
