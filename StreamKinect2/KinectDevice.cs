@@ -17,6 +17,7 @@ namespace StreamKinect2
         private DepthFrameReader m_depthFrameReader;
         private bool m_isRunning;
         private FrameDescription m_depthFrameDescription;
+        private ushort[] m_depthPixels;
 
         public KinectDeviceDepthFrameSource(DepthFrameReader depthFrameReader)
         {
@@ -24,6 +25,8 @@ namespace StreamKinect2
             this.m_depthFrameDescription = depthFrameReader.DepthFrameSource.FrameDescription;
             this.m_depthFrameReader.FrameArrived += depthFrameReader_FrameArrived;
             this.m_isRunning = false;
+
+            this.m_depthPixels =  new UInt16[m_depthFrameDescription.Width * m_depthFrameDescription.Height];
         }
 
         private void depthFrameReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
@@ -56,8 +59,6 @@ namespace StreamKinect2
         // This function required /unsafe due to the direct pointer access below:
         private void ProcessDepthFrameData(IntPtr depthFrameData, uint depthFrameDataSize, ushort minDepth, ushort maxDepth)
         {
-            var depthPixels = new UInt16[m_depthFrameDescription.Width * m_depthFrameDescription.Height];
-            
             unsafe
             {
                 // depth frame data is a 16 bit value
@@ -71,7 +72,7 @@ namespace StreamKinect2
 
                     // To convert to a byte, we're mapping the depth value to the byte range.
                     // Values outside the reliable depth range are mapped to 0 (black).
-                    depthPixels[i] = (depth >= minDepth && depth <= maxDepth) ? depth : (UInt16)0;
+                    m_depthPixels[i] = (depth >= minDepth && depth <= maxDepth) ? depth : (UInt16)0;
                 }
             }
 
@@ -81,7 +82,7 @@ namespace StreamKinect2
                 {
                     Width = this.m_depthFrameDescription.Width,
                     Height = this.m_depthFrameDescription.Height,
-                    FrameData = depthPixels,
+                    FrameData = m_depthPixels,
                 };
 
                 if (DepthFrame != null)
@@ -116,26 +117,32 @@ namespace StreamKinect2
     {
         public static KinectDevice DefaultDevice = CreateDefaultDevice();
 
-        private KinectSensor sensor;
-        private DepthFrameReader depthFrameReader;
-        private KinectDeviceDepthFrameSource depthFrameSource;
+        private KinectSensor m_sensor;
+        private DepthFrameReader m_depthFrameReader;
+        private KinectDeviceDepthFrameSource m_depthFrameSource;
 
         private KinectDevice(KinectSensor sensor)
         {
-            this.sensor = sensor;
-            this.depthFrameReader = this.sensor.DepthFrameSource.OpenReader();
-            this.depthFrameSource = new KinectDeviceDepthFrameSource(this.depthFrameReader);
-            this.sensor.Open();
+            this.m_sensor = sensor;
+            this.m_sensor.IsAvailableChanged += OnSensorIsAvailableChanged;
+            this.m_depthFrameReader = this.m_sensor.DepthFrameSource.OpenReader();
+            this.m_depthFrameSource = new KinectDeviceDepthFrameSource(this.m_depthFrameReader);
+            this.m_sensor.Open();
+        }
+
+        private void OnSensorIsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
+        {
+            Trace.WriteLine("Sensor availability changed: " + m_sensor.IsAvailable);
         }
 
         public string UniqueId
         {
-            get { return this.sensor.UniqueKinectId; }
+            get { return this.m_sensor.UniqueKinectId; }
         }
 
         public IDepthFrameSource DepthFrameSource
         {
-            get { return this.depthFrameSource; }
+            get { return this.m_depthFrameSource; }
         }
 
         private static KinectDevice CreateDefaultDevice()

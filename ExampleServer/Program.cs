@@ -33,7 +33,7 @@ namespace ExampleServer
             using (Server server = new Server())
             {
                 server.Start();
-                server.AddDevice(new SimulatedDevice());
+                server.AddDevice(device);
                 System.Console.WriteLine("Press Enter to stop server");
                 System.Console.ReadLine();
             }
