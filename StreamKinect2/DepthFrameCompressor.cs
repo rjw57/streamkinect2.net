@@ -5,12 +5,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace StreamKinect2
 {
-    public delegate void CompressedDepthFrameHandler(DepthFrameCompressor compressor, byte[] data);
+    public delegate void CompressedDepthFrameHandler(DepthFrameCompressor compressor, CompressedDepthFrameArgs args);
+
+    public class CompressedDepthFrameArgs
+    {
+        public byte[] FrameData;
+        public int OriginalSize;
+    }
 
     public class DepthFrameCompressor : IDisposable
     {
@@ -47,21 +52,34 @@ namespace StreamKinect2
             long thisTaskId = m_nextTaskId++;
 
             UInt16[] data = (UInt16[])args.FrameData.Clone();
+            int frameWidth = args.Width;
+            int frameHeight = args.Height;
+
             var task = Task.Factory.StartNew(() =>
             {
                 var outputStream = new MemoryStream();
                 var stream = new Lz4CompressionStream(outputStream);
 
+                outputStream.WriteByte((byte)((frameWidth >> 8) & 0xff));
+                outputStream.WriteByte((byte)(frameWidth & 0xff));
+                outputStream.WriteByte((byte)((frameHeight >> 8) & 0xff));
+                outputStream.WriteByte((byte)(frameHeight & 0xff));
+
                 // Write data to stream in big endian (aka network) order
                 foreach (var datum in data)
                 {
-                    stream.WriteByte((byte)(datum >> 8));
-                    stream.WriteByte((byte)(datum & 0xff));
+                    outputStream.WriteByte((byte)(datum >> 8));
+                    outputStream.WriteByte((byte)(datum & 0xff));
                 }
 
                 // Send event
                 var e = CompressedDepthFrame;
-                if (e != null) { e(this, outputStream.GetBuffer()); }
+
+                // Skip the first 8 bytes which is a header giving the length of the original data.
+                if (e != null) { e(this, new CompressedDepthFrameArgs() {
+                    FrameData = outputStream.GetBuffer(),
+                    OriginalSize = data.Length,
+                }); }
 
                 // Remove ourselves from the bad
                 m_compressionTasks.Remove(thisTaskId);

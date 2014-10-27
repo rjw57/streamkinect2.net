@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -122,7 +123,7 @@ namespace StreamKinect2
             m_compressor.NewDepthFrame(source, args);
         }
 
-        private void OnCompressedDepthFrame(DepthFrameCompressor compressor, byte[] data)
+        private void OnCompressedDepthFrame(DepthFrameCompressor compressor, CompressedDepthFrameArgs args)
         {
             // Don't do anything if we've not got a depth frame endpoint
             if (!m_endpoints.ContainsKey(EndpointType.DEPTH))
@@ -130,7 +131,12 @@ namespace StreamKinect2
                 return;
             }
 
-            m_endpoints[EndpointType.DEPTH].Socket.Send(data, data.Length, true);
+            // Send original length as a big-endian 32 bit integer
+            byte[] lenBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder((int) args.OriginalSize));
+            m_endpoints[EndpointType.DEPTH].Socket.Send(lenBytes, lenBytes.Length, true, true);
+
+            // Send original data
+            m_endpoints[EndpointType.DEPTH].Socket.Send(args.FrameData, args.FrameData.Length, true, false);
         }
 
         public IDevice Device { get { return m_device; } }
